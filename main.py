@@ -2,6 +2,7 @@ import random
 import math
 import matplotlib.pyplot as plt
 
+
 def exponential(rate):
 # Generates an exponential random variable with parameter "rate"
     return random.expovariate(rate)
@@ -39,7 +40,7 @@ def mms_avg_wait(lamb, mu, s):
     """
     pi0 = mms_pi0(lamb, mu, s)
     if pi0 is None:
-        return float('inf')
+        return float('inf'), float('inf')
 
     rho = lamb / mu
 
@@ -54,36 +55,12 @@ def mms_avg_wait(lamb, mu, s):
     # Compute W = average total time in system via Little's Law
     # From Allen & Allen p.260:
     W  = C / lamb
-    return W
 
-mu          = 10.0          # agents process ~10 passengers/hour each
-target_W    = 20 / 60       # 20 minutes in hours
-time_windows = [
-    ("Late night  (0-6)",   6),
-    ("Morning rush (6-9)",  22),
-    ("Mid-morning (9-12)",  18),
-    ("Afternoon  (12-16)",  14),
-    ("Evening rush(16-19)", 20),
-    ("Evening     (19-22)", 12),
-]
+    # Wq = time spent just waiting in line before service begins
+    # From Adeke (2018) eq. 22: Wq = Lq / lamb
+    Wq = Lq / lamb
 
-print(f"Service rate μ = {mu} passengers/hour per agent")
-print(f"Target W < {target_W*60:.0f} minutes\n")
-print(f"{'Period':<25} {'λ':>4}  {'min s':>6}  {'W (min)':>9}  {'ρ per agent':>12}")
-print("─" * 65)
-
-required_s = []
-for label, lamb in time_windows:
-    for s in range(1, 50):
-        W = mms_avg_wait(lamb, mu, s)
-        if W < target_W:
-            required_s.append(s)
-            print(f"{label:<25} {lamb:>4}  {s:>6}  {W*60:>8.2f}m  {lamb/(s*mu):>11.3f}")
-            break
-
-print("─" * 65)
-print(f"\n Peak demand requires s = {max(required_s)} agents (morning rush, λ=22)")
-print(f" This keeps W < 20 min in ALL time windows.")
+    return W, Wq
 
 def mms_queue(s, mu, max_time): 
     """
@@ -146,43 +123,132 @@ def mms_queue(s, mu, max_time):
         # record the number in system after this event
     return times, queue_lengths, waiting_times
 
-# Run simulation with the recommended number of agents
-s_opt   = max(required_s)
-max_time = 72   # 3 days
+scenarios = [
+    {"mu": 10.0, "label": "μ=10 (slow)",   "color": "tomato"},
+    {"mu": 15.0, "label": "μ=15 (medium)", "color": "steelblue"},
+    {"mu": 20.0, "label": "μ=20 (fast)",   "color": "seagreen"},
+]
 
-times, queue_lengths, waiting_times = mms_queue(s_opt, mu, max_time)
+target_W = 20 / 60
+max_time = 72  # 3 days
 
-avg_W   = sum(waiting_times) / len(waiting_times) * 60
-avg_C   = sum(queue_lengths) / len(queue_lengths)
-peak_Q  = max(queue_lengths)
+time_windows = [
+    ("Late night  (0-6)",    6),
+    ("Morning rush (6-9)",  22),
+    ("Mid-morning (9-12)",  18),
+    ("Afternoon  (12-16)",  14),
+    ("Evening rush(16-19)", 20),
+    ("Evening     (19-22)", 12),
+]
 
-print(f"\n── Simulation results (s={s_opt} agents, 3 days) ──")
-print(f"  Avg time in system : {avg_W:.2f} minutes")
-print(f"  Avg queue length   : {avg_C:.2f}")
-print(f"  Peak queue length  : {peak_Q}")
-print(f"  Customers served   : {len(waiting_times)}")
+# Analytical tables for all three mu values
+for scenario in scenarios:
+    mu = scenario["mu"]
+    print(f"Service rate μ = {mu} passengers/hour per agent")
+    print(f"Target W < {target_W*60:.0f} minutes")
+    print(f"{'Period':<25} {'λ':>4}  {'min s':>6}  {'W (min)':>9}  {'Wq (min)':>9}  {'ρ per agent':>12}")
+    print("─" * 75)
 
-# Plot
-fig, axes = plt.subplots(2, 1, figsize=(13, 7))
+    required_s = []
+    for label, lamb in time_windows:
+        for s in range(1, 50):
+            W, Wq = mms_avg_wait(lamb, mu, s)
+            if W < target_W:
+                required_s.append(s)
+                print(f"{label:<25} {lamb:>4}  {s:>6}  "
+                      f"{W*60:>8.2f}m  {Wq*60:>8.2f}m  {lamb/(s*mu):>11.3f}")
+                break
+    s_opt = max(required_s)
+    print(f"Peak demand requires s = {s_opt} agents (morning rush, λ=22)")
+    print(f"   This keeps W < 20 min in ALL time windows.\n")
 
-axes[0].step(times, queue_lengths, where="post", linewidth=0.7, color="steelblue")
-axes[0].axhline(s_opt, color="tomato", linestyle="--", linewidth=1,
-                label=f"s={s_opt} agents (all busy = queue forming)")
-axes[0].set_xlabel("Time (hours)")
-axes[0].set_ylabel("Passengers in system")
-axes[0].set_title(f"M/M/s TSA Queue — s={s_opt} agents, μ={mu}/hr, time-varying λ(t)")
-axes[0].legend()
+    scenario["s_opt"] = s_opt
 
-# Arrival rate schedule
-hours = list(range(73))
-rates = [lambda_time(h) for h in hours]
-axes[1].step(hours, rates, where="post", color="coral", linewidth=1.5)
-axes[1].axhline(s_opt * mu, color="green", linestyle="--", linewidth=1,
-                label=f"Max throughput = s·μ = {s_opt*mu}/hr")
-axes[1].set_xlabel("Hour")
-axes[1].set_ylabel("λ(t) — arrivals/hour")
-axes[1].set_title("Arrival rate schedule vs total service capacity")
-axes[1].legend()
+# Simulation for all three scenarios
 
+print("── Simulation results (3 days) ──────────────────────────────────")
+print(f"{'Scenario':<15} {'s':>4}  {'Avg W':>10}  {'Avg Wq':>10}  {'Peak Q':>8}  {'Served':>8}")
+print("─" * 65)
+
+for scenario in scenarios:
+    mu    = scenario["mu"]
+    s_opt = scenario["s_opt"]
+
+    times, queue_lengths, waiting_times = mms_queue(s_opt, mu, max_time)
+
+    avg_W  = sum(waiting_times) / len(waiting_times) * 60
+    # Wq from simulation = avg W - avg service time (1/mu in hours → minutes)
+    avg_Wq = avg_W - (1/mu * 60)
+    avg_C  = sum(queue_lengths) / len(queue_lengths)
+    peak_Q = max(queue_lengths)
+
+    print(f"{scenario['label']:<15} {s_opt:>4}  {avg_W:>9.2f}m  "
+          f"{avg_Wq:>9.2f}m  {peak_Q:>8}  {len(waiting_times):>8}")
+
+    # store for plotting
+    scenario["times"]         = times
+    scenario["queue_lengths"] = queue_lengths
+    scenario["avg_W"]         = avg_W
+    scenario["avg_Wq"]        = avg_Wq
+    scenario["peak_Q"]        = peak_Q
+
+# Plot 1: Queue lengths for all three scenarios
+
+fig1, axes1 = plt.subplots(3, 1, figsize=(13, 10))
+
+for i, scenario in enumerate(scenarios):
+    mu            = scenario["mu"]
+    s_opt         = scenario["s_opt"]
+    times         = scenario["times"]
+    queue_lengths = scenario["queue_lengths"]
+    color         = scenario["color"]
+    label         = scenario["label"]
+    avg_W         = scenario["avg_W"]
+    avg_Wq        = scenario["avg_Wq"]
+
+    axes1[i].step(times, queue_lengths, where="post", linewidth=0.7, color=color)
+    axes1[i].axhline(s_opt, color="tomato", linestyle="--", linewidth=1,
+                     label=f"s={s_opt} agents (queue forming above line)")
+    axes1[i].set_xlabel("Time (hours)")
+    axes1[i].set_ylabel("Passengers in system")
+    axes1[i].set_title(f"{label} — s={s_opt}, avg W={avg_W:.2f} min, avg Wq={avg_Wq:.2f} min")
+    axes1[i].legend(fontsize=9)
+
+fig1.suptitle("M/M/s TSA Queue — Queue length over 3 days (μ = 10, 15, 20)",
+              fontsize=13, fontweight="bold")
+plt.tight_layout()
+plt.show()
+
+# Plot 2: Summary comparison bar chart
+
+fig2, axes2 = plt.subplots(1, 3, figsize=(13, 5))
+
+labels     = [s["label"] for s in scenarios]
+avg_Ws     = [s["avg_W"] for s in scenarios]
+avg_Wqs    = [s["avg_Wq"] for s in scenarios]
+peak_Qs    = [s["peak_Q"] for s in scenarios]
+s_opts     = [s["s_opt"] for s in scenarios]
+colors     = [s["color"] for s in scenarios]
+
+# Left: avg W comparison
+axes2[0].bar(labels, avg_Ws, color=colors, edgecolor="black", linewidth=0.5)
+axes2[0].axhline(20, color="red", linestyle="--", linewidth=1, label="20 min target")
+axes2[0].set_ylabel("Minutes")
+axes2[0].set_title("Avg time in system (W)")
+axes2[0].legend(fontsize=8)
+
+# Middle: avg Wq comparison
+axes2[1].bar(labels, avg_Wqs, color=colors, edgecolor="black", linewidth=0.5)
+axes2[1].set_ylabel("Minutes")
+axes2[1].set_title("Avg wait in queue (Wq)")
+
+# Right: agents required
+axes2[2].bar(labels, s_opts, color=colors, edgecolor="black", linewidth=0.5)
+axes2[2].set_ylabel("Number of agents")
+axes2[2].set_title("Agents required (s)")
+axes2[2].set_yticks([1, 2, 3])
+
+fig2.suptitle("Scenario comparison — μ = 10, 15, 20",
+              fontsize=13, fontweight="bold")
 plt.tight_layout()
 plt.show()
