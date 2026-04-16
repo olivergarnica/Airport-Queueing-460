@@ -2,6 +2,7 @@ import random
 import math
 import matplotlib.pyplot as plt
 
+random.seed(42)
 
 def exponential(rate):
 # Generates an exponential random variable with parameter "rate"
@@ -207,14 +208,15 @@ for i, scenario in enumerate(scenarios):
     avg_Wq        = scenario["avg_Wq"]
 
     axes1[i].step(times, queue_lengths, where="post", linewidth=0.7, color=color)
-    axes1[i].axhline(s_opt, color="tomato", linestyle="--", linewidth=1,
+    axes1[i].axhline(s_opt, color="tomato", linestyle="--", linewidth=1, 
                      label=f"s={s_opt} agents (queue forming above line)")
     axes1[i].set_xlabel("Time (hours)")
     axes1[i].set_ylabel("Passengers in system")
     axes1[i].set_title(f"{label} — s={s_opt}, avg W={avg_W:.2f} min, avg Wq={avg_Wq:.2f} min")
     axes1[i].legend(fontsize=9)
+    axes1[i].set_ylim(0, 13)
 
-fig1.suptitle("M/M/s TSA Queue — Queue length over 3 days (μ = 10, 15, 20)",
+fig1.suptitle("M/M/s TSA Queue — Queue length over 3 days (μ = 10, 15, 20)", 
               fontsize=13, fontweight="bold")
 plt.tight_layout()
 plt.show()
