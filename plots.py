@@ -9,9 +9,9 @@ from queue import (
     required_servers_by_window,
 )
 
-random.seed(460)
+random.seed(42)
 
-# Setup
+# Setup 
 target_W = 20 / 60
 max_time = 72
 
@@ -30,8 +30,7 @@ scenarios = [
     {"mu": 20.0, "label": "μ=20 (fast)",   "color": "seagreen"},
 ]
 
-# Run all three scenarios
-
+# Run all three scenarios 
 for scenario in scenarios:
     mu = scenario["mu"]
 
@@ -52,8 +51,7 @@ for scenario in scenarios:
     scenario["peak_Q"]        = summary["peak_system_size"]
     scenario["served"]        = summary["customers_served"]
 
-# Figure 1: Queue length over 3 days
-
+# Figure 1: Queue length over 3 days 
 fig1, axes1 = plt.subplots(3, 1, figsize=(13, 10))
 
 for i, scenario in enumerate(scenarios):
@@ -82,8 +80,7 @@ plt.tight_layout()
 plt.savefig("tsa_queue_lengths.png", dpi=150)
 plt.show()
 
-# Figure 2: Summary bar chart
-
+# Figure 2: Summary bar chart 
 fig2, axes2 = plt.subplots(1, 3, figsize=(13, 5))
 
 labels  = [s["label"]  for s in scenarios]
@@ -104,4 +101,11 @@ axes2[1].set_title("Avg wait in queue (Wq)")
 
 axes2[2].bar(labels, s_opts, color=colors, edgecolor="black", linewidth=0.5)
 axes2[2].set_ylabel("Number of agents")
-axes2[2].set_title("Agents require
+axes2[2].set_title("Agents required (s)")
+axes2[2].set_yticks([1, 2, 3])
+
+fig2.suptitle("Scenario comparison — μ = 10, 15, 20",
+              fontsize=13, fontweight="bold")
+plt.tight_layout()
+plt.savefig("tsa_scenario_comparison.png", dpi=150)
+plt.show()
