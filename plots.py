@@ -1,6 +1,6 @@
 import random
 import matplotlib.pyplot as plt
-from queue import (
+from tsa_queue import (
     lambda_time,
     mms_avg_time_in_system,
     mms_avg_wait_queue,
