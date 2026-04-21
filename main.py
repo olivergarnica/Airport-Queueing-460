@@ -28,7 +28,6 @@ def mms_pi0(lamb, mu, s):
     rho = lamb / mu
     if lamb >= s * mu:
         return None  # unstable
-    # sum_{i=0}^{s-1} (rho^i / i!) + (rho^s / s!) * 1/(1 - rho/s)
     total = sum((rho**i) / math.factorial(i) for i in range(s))
     total += (rho**s / math.factorial(s)) * (1 / (1 - rho / s))
     return 1.0 / total
@@ -69,8 +68,8 @@ def mms_queue(s, mu, max_time):
     s   = number of servers
     mu  = per-server service rate
     """
-    t = 0.0   # current simulation time
-    num_in_system = 0   # number of customers currently in the system
+    t = 0.0 
+    num_in_system = 0 
     arrival_times_in_queue = []   # stores the arrival times of customers currently in the system the first person in this list is the one who has been waiting longest
     waiting_times = [] # this will store each customer's total time in system: from arrival until departure
     times = [0.0]   # list of event times (for plotting)
@@ -125,9 +124,9 @@ def mms_queue(s, mu, max_time):
     return times, queue_lengths, waiting_times
 
 scenarios = [
-    {"mu": 10.0, "label": "μ=10 (slow)",   "color": "tomato"},
-    {"mu": 15.0, "label": "μ=15 (medium)", "color": "steelblue"},
-    {"mu": 20.0, "label": "μ=20 (fast)",   "color": "seagreen"},
+    {"mu": 10.0, "label": "mu=10 (slow)",   "color": "tomato"},
+    {"mu": 15.0, "label": "mu=15 (medium)", "color": "steelblue"},
+    {"mu": 20.0, "label": "mu=20 (fast)",   "color": "seagreen"},
 ]
 
 target_W = 20 / 60
@@ -145,7 +144,7 @@ time_windows = [
 # Analytical tables for all three mu values
 for scenario in scenarios:
     mu = scenario["mu"]
-    print(f"Service rate μ = {mu} passengers/hour per agent")
+    print(f"Service rate mu = {mu} passengers/hour per agent")
     print(f"Target W < {target_W*60:.0f} minutes")
     print(f"{'Period':<25} {'λ':>4}  {'min s':>6}  {'W (min)':>9}  {'Wq (min)':>9}  {'ρ per agent':>12}")
     print("─" * 75)
@@ -216,7 +215,7 @@ for i, scenario in enumerate(scenarios):
     axes1[i].legend(fontsize=9)
     axes1[i].set_ylim(0, 13)
 
-fig1.suptitle("M/M/s TSA Queue — Queue length over 3 days (μ = 10, 15, 20)", 
+fig1.suptitle("M/M/s TSA Queue — Queue length over 3 days (mu = 10, 15, 20)", 
               fontsize=13, fontweight="bold")
 plt.tight_layout()
 plt.show()
@@ -250,7 +249,7 @@ axes2[2].set_ylabel("Number of agents")
 axes2[2].set_title("Agents required (s)")
 axes2[2].set_yticks([1, 2, 3])
 
-fig2.suptitle("Scenario comparison — μ = 10, 15, 20",
+fig2.suptitle("Scenario comparison — mu = 10, 15, 20",
               fontsize=13, fontweight="bold")
 plt.tight_layout()
 plt.show()
